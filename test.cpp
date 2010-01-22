@@ -15,25 +15,25 @@ warranty, and with no claim as to its suitability for any purpose.
 
 #include <iostream>
 
-static const string SPACES = " \t\r\n";           // what gets removed when we trim
+static const std::string SPACES = " \t\r\n";           // what gets removed when we trim
 
-// get rid of leading and trailing spaces from a string
-const string trim (const string & sInput, const string & t = SPACES)
+// get rid of leading and trailing spaces from a std::string
+const std::string trim (const std::string & sInput, const std::string & t = SPACES)
 {
-  string s = sInput; 
-  string::size_type i = s.find_last_not_of (t);
-  if (i == string::npos)
+  std::string s = sInput; 
+  std::string::size_type i = s.find_last_not_of (t);
+  if (i == std::string::npos)
     return "";
   else
    return s.erase (i + 1).erase (0, sInput.find_first_not_of (t)) ; 
 } // end of trim
 
-// remove backspaces from a string  
-const string removeBackspaces (const string & sInput)
+// remove backspaces from a std::string  
+const std::string removeBackspaces (const std::string & sInput)
   {
-  string s = sInput;
-  string::size_type i;
-  while ((i = s.find ('\b')) != string::npos)
+  std::string s = sInput;
+  std::string::size_type i;
+  while ((i = s.find ('\b')) != std::string::npos)
     if (i == 0)
       s.erase (0, 1);  // backspace at start, just erase it
     else
@@ -44,15 +44,15 @@ const string removeBackspaces (const string & sInput)
 int main ()
 
   {
-  string inputLine;
+  std::string inputLine;
 
   
   try
     {
     while (true)
       {
-      cout << "Enter expression ... ";
-      getline (cin, inputLine);
+      std::cout << "Enter expression ... ";
+      std::getline (std::cin, inputLine);
       
       // remove backspaces entered while typing, get rid of leading/trailing spaces
       inputLine = trim (removeBackspaces (inputLine));
@@ -70,7 +70,7 @@ int main ()
       double value = p.Evaluate ();
       
       // display result
-      cout << "Result = " << value << endl;
+      std::cout << "Result = " << value << std::endl;
 
       // example of retrieving a symbol
       double abc = p ["abc"]; 
@@ -80,10 +80,11 @@ int main ()
     } // end of try block
   
   // catch parse and runtime errors
-  catch (exception & e)
+  catch (std::exception & e)
     {
-    cout << "exception: " << e.what ();
+    std::cout << "exception: " << e.what ();
     return 1;
     }
   
   } // end of main
+

@@ -6,25 +6,6 @@
 // disable warnings about long names
   #pragma warning( disable : 4786)
 
-  // under Visual C++ 6 these do not seem to exist
-  template <typename T> 
-  inline T min (const T a, const T b)
-    {
-    return (a < b) ? a : b;
-    } // end of min
-
-  template <typename T> 
-  inline T max (const T a, const T b)
-    {
-    return (a > b) ? a : b;
-    } // end of max
-
-  template <typename T> 
-  inline T abs (T i)
-    {
-    return (i < 0) ? -i : i;
-    } // end of abs
-
 #endif
 
 #include <string>
@@ -32,21 +13,16 @@
 #include <stdexcept>
 #include <sstream>
 
-#include <math.h>
-#include <time.h>
-
-using namespace std;
-
-// make a string on-the-fly
-#define MAKE_STRING(msg) \
-   (((ostringstream&) (ostringstream() << boolalpha << msg)).str())
+#include <cmath>
+#include <ctime>
+#include <cstdlib>
 
 class Parser
   {
   
   public:
     
-  typedef enum TokenType
+  enum TokenType
     {
     NONE,
     NAME,
@@ -83,19 +59,19 @@ class Parser
 
   private:
     
-  string program_;
+  std::string program_;
   
   const char * pWord_;
   const char * pWordStart_;
   // last token parsed
   TokenType type_;
-  string word_;
+  std::string word_;
   double value_;
      
   public:
  
   // ctor
-  Parser (const string & program) 
+  Parser (const std::string & program) 
     : program_ (program), pWord_ (program_.c_str ()), type_ (NONE)
       {  
       // insert pre-defined names:
@@ -104,13 +80,13 @@ class Parser
       }
   
   const double Evaluate ();  // get result
-  const double Evaluate (const string program);  // get result
+  const double Evaluate (const std::string & program);  // get result
 
   // access symbols with operator []
-  double & operator[] (const string & key) { return symbols_ [key]; }
+  double & operator[] (const std::string & key) { return symbols_ [key]; }
 
   // symbol table - can be accessed directly (eg. to copy a batch in)
-  map<string, double> symbols_;
+  std::map<std::string, double> symbols_;
 
   private:
 
@@ -125,9 +101,14 @@ class Parser
   inline void CheckToken (const TokenType wanted)
     {
     if (type_ != wanted)
-      throw runtime_error (MAKE_STRING ("'" << static_cast <char> (wanted) << "' expected."));    
+      {
+      std::ostringstream s;
+      s << "'" << static_cast <char> (wanted) << "' expected.";
+      throw std::runtime_error (s.str ());    
+      }
     }
   };  // end of Parser
 
 
 #endif // PARSER_H
+

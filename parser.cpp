@@ -19,25 +19,35 @@ Modified 24 October 2005 by Nick Gammon.
   5. Removed MAKE_STRING macro and inlined the functionality where required.
   6. Changed Evaluate function to take its argument by reference.
 
+Modified 13 January 2010 by Nick Gammon.
+ 
+  1. Changed getrandom to work more reliably (see page 2 of discussion thread)
+  2. Changed recognition of numbers to allow for .5 (eg. "a + .5" where there is no leading 0)
+     Also recognises -.5 (so you don't have to write -0.5)
+  3. Fixed problem where (2+3)-1 would not parse correctly (- sign directly after parentheses)
+  4. Fixed problem where changing a parameter and calling p.Evaluate again would fail because the 
+     initial token type was not reset to NONE.
+ 
+ 
 Thanks to various posters on my forum for suggestions. The relevant post is currently at:
 
-  http://www.gammon.com.au/forum/bbshowpost.php?bbsubject_id=4649
-
-
-Modified 25 October 2005 by Nick Gammon.
-
-  1. Changed getrandom to use all bits of returned random number in its calculation
+  http://www.gammon.com.au/forum/?id=4649
 
 */
 
 #include "parser.h"
 
 
+// returns a number from 0 up to, but excluding x
 const int getrandom (const int x)
 {
 	if (x <= 0)
 		return 0;
-  return (double) rand () / (double) (RAND_MAX + 1) * (double) x;
+
+	// r will be between 0 and 1 (but below 1 as we are dividing by RAND_MAX+1)
+	double r = static_cast<double> (std::rand () % RAND_MAX) / (static_cast<double> (RAND_MAX) + 1.0);
+	return floor (r * x);
+
 }   // end of getrandom
 
 const int roll (const int howmany, const int die)
@@ -53,7 +63,7 @@ const int roll (const int howmany, const int die)
 } // end of roll
 
 
-// returns true of a x% probability exists
+// returns true if a x% probability exists
 // eg. percent (80) will be true 80% of the time
 const bool percent (const int prob)
   {
@@ -303,12 +313,19 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
   unsigned char cNextCharacter  = *(pWord_ + 1);  // 2nd character in new word_
   
   // look for number
-  if ((!ignoreSign && 
-        (cFirstCharacter == '+' || cFirstCharacter == '-') && 
-        isdigit (cNextCharacter)
-      ) 
-      || isdigit (cFirstCharacter))
-    {
+  // can be: + or - followed by a decimal point
+  // or: + or - followed by a digit
+  // or: starting with a digit
+  // or: decimal point followed by a digit
+  if ((!ignoreSign &&
+	   (cFirstCharacter == '+' || cFirstCharacter == '-') &&
+	   (isdigit (cNextCharacter) || cNextCharacter == '.')
+	   )
+	  || isdigit (cFirstCharacter)
+	  // allow decimal numbers without a leading 0. e.g. ".5"
+	  // Dennis Jones 01-30-2009
+	  || (cFirstCharacter == '.' && isdigit (cNextCharacter)) )
+	  {
     // skip sign for now
     if ((cFirstCharacter == '+' || cFirstCharacter == '-'))
       pWord_++;
@@ -380,7 +397,7 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
                 return type_ = OR;
                 }
               break;
-    // single-character symbols
+    // single-character symboles
     case '=':
     case '<':
     case '>':
@@ -518,7 +535,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
       {
       double v = CommaList (true);    // inside parens, you could have commas
       CheckToken (RHPAREN);
-      GetToken ();                    // eat the )
+      GetToken (true);                // eat the )
       return v;
       }
     
@@ -637,3 +654,4 @@ const double Parser::Evaluate (const std::string & program)  // get result
   type_     = NONE;
   return Evaluate ();
   }
+
