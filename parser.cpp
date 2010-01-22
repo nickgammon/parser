@@ -10,6 +10,24 @@ distribute this software is granted provided this copyright notice appears
 in all copies. This software is provided "as is" without express or implied
 warranty, and with no claim as to its suitability for any purpose.
  
+Modified 24 October 2005 by Nick Gammon.
+
+  1. Changed use of "abs" to "fabs"
+  2. Changed inclues from math.h and time.h to fmath and ftime
+  3. Rewrote DoMin and DoMax to inline the computation because of some problems with some libraries.
+  4. Removed "using namespace std;" and put "std::" in front of std namespace names where appropriate
+  5. Removed MAKE_STRING macro and inlined the functionality where required.
+  6. Changed Evaluate function to take its argument by reference.
+
+Thanks to various posters on my forum for suggestions. The relevant post is currently at:
+
+  http://www.gammon.com.au/forum/bbshowpost.php?bbsubject_id=4649
+
+
+Modified 25 October 2005 by Nick Gammon.
+
+  1. Changed getrandom to use all bits of returned random number in its calculation
+
 */
 
 #include "parser.h"
@@ -17,12 +35,9 @@ warranty, and with no claim as to its suitability for any purpose.
 
 const int getrandom (const int x)
 {
-	long n;
-
 	if (x <= 0)
 		return 0;
-  n = rand ();
-	return (n % x);
+  return (double) rand () / (double) (RAND_MAX + 1) * (double) x;
 }   // end of getrandom
 
 const int roll (const int howmany, const int die)
@@ -170,18 +185,18 @@ double DoPercent (double arg)
 
 const double DoMin (const double arg1, const double arg2)
   {
-  return min<double> (arg1, arg2);
+  return (arg1 < arg2 ? arg1 : arg2);
   }
 
 const double DoMax (const double arg1, const double arg2)
   {
-  return max<double> (arg1, arg2);
+  return (arg1 > arg2 ? arg1 : arg2);
   }
 
 const double DoFmod (const double arg1, const double arg2)
   {
   if (arg2 == 0.0)
-    throw runtime_error ("Divide by zero in mod");
+    throw std::runtime_error ("Divide by zero in mod");
   
   return fmod (arg1, arg2);
   }
@@ -209,20 +224,16 @@ typedef const double (*TwoArgFunction)  (const double arg1, const double arg2);
 typedef const double (*ThreeArgFunction)  (const double arg1, const double arg2, const double arg3);
 
 // maps of function names to functions
-static map<string, OneArgFunction>    OneArgumentFunctions;
-static map<string, TwoArgFunction>    TwoArgumentFunctions;
-static map<string, ThreeArgFunction>  ThreeArgumentFunctions;
+static std::map<std::string, OneArgFunction>    OneArgumentFunctions;
+static std::map<std::string, TwoArgFunction>    TwoArgumentFunctions;
+static std::map<std::string, ThreeArgFunction>  ThreeArgumentFunctions;
 
 // for standard library functions
 #define STD_FUNCTION(arg) OneArgumentFunctions [#arg] = arg
 
 static int LoadOneArgumentFunctions ()
   {
-#ifdef WIN32  
-  STD_FUNCTION (abs<double>);
-#else
-  STD_FUNCTION (abs);
-#endif  
+  OneArgumentFunctions ["abs"] = fabs;
   STD_FUNCTION (acos);
   STD_FUNCTION (asin);
   STD_FUNCTION (atan);
@@ -268,7 +279,7 @@ static int LoadThreeArgumentFunctions ()
 
 const Parser::TokenType Parser::GetToken (const bool ignoreSign)
   {
-  word_.erase (0, string::npos);
+  word_.erase (0, std::string::npos);
   
   // skip spaces
   while (*pWord_ && isspace (*pWord_))
@@ -279,7 +290,7 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
   // look out for unterminated statements and things
   if (*pWord_ == 0 &&  // we have EOF
       type_ == END)  // after already detecting it
-    throw runtime_error ("Unexpected end of expression.");
+    throw std::runtime_error ("Unexpected end of expression.");
 
   unsigned char cFirstCharacter = *pWord_;        // first character in new word_
   
@@ -314,14 +325,14 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
         pWord_++;      
       }
     
-    word_ = string (pWordStart_, pWord_ - pWordStart_);
+    word_ = std::string (pWordStart_, pWord_ - pWordStart_);
     
-    istringstream is (word_);
-    // parse string into double value
+    std::istringstream is (word_);
+    // parse std::string into double value
     is >> value_;
       
     if (is.fail () || !is.eof ())
-      throw runtime_error ("Bad numeric literal: " + word_);
+      throw std::runtime_error ("Bad numeric literal: " + word_);
     return type_ = NUMBER;
     }   // end of number found
 
@@ -347,7 +358,7 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
     
     if (type_ != NONE)
       {
-      word_ = string (pWordStart_, 2);
+      word_ = std::string (pWordStart_, 2);
       pWord_ += 2;   // skip both characters
       return type_;
       } // end of found one    
@@ -357,19 +368,19 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
     {
     case '&': if (cNextCharacter == '&')    // &&
                 {
-                word_ = string (pWordStart_, 2);
+                word_ = std::string (pWordStart_, 2);
                 pWord_ += 2;   // skip both characters
                 return type_ = AND;
                 }
               break;
    case '|': if (cNextCharacter == '|')   // ||
                 {
-                word_ = string (pWordStart_, 2);
+                word_ = std::string (pWordStart_, 2);
                 pWord_ += 2;   // skip both characters
                 return type_ = OR;
                 }
               break;
-    // single-character symboles
+    // single-character symbols
     case '=':
     case '<':
     case '>':
@@ -381,7 +392,7 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
     case ')':
     case ',':
     case '!':
-      word_ = string (pWordStart_, 1);
+      word_ = std::string (pWordStart_, 1);
       ++pWord_;   // skip it
       return type_ = TokenType (cFirstCharacter);
     } // end of switch on cFirstCharacter
@@ -389,16 +400,20 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
   if (!isalpha (cFirstCharacter))
     {
     if (cFirstCharacter < ' ')
-      throw runtime_error (MAKE_STRING ("Unexpected character (decimal " << int (cFirstCharacter) << ")"));
+      {
+      std::ostringstream s;
+      s << "Unexpected character (decimal " << int (cFirstCharacter) << ")";
+      throw std::runtime_error (s.str ());    
+      }
     else
-      throw runtime_error ("Unexpected character: " + string (1, cFirstCharacter));
+      throw std::runtime_error ("Unexpected character: " + std::string (1, cFirstCharacter));
     }
   
   // we have a word (starting with A-Z) - pull it out
   while (isalnum (*pWord_) || *pWord_ == '_')
     ++pWord_;
   
-  word_ = string (pWordStart_, pWord_ - pWordStart_);
+  word_ = std::string (pWordStart_, pWord_ - pWordStart_);
   return type_ = NAME;
   }   // end of Parser::GetToken
 
@@ -411,7 +426,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
   {
   
   if (get)
-    GetToken ();    // one-token lookahead
+    GetToken ();    // one-token lookahead  
   
   switch (type_)
     {
@@ -424,12 +439,12 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
     
     case NAME:
       {
-      string word = word_;
+      std::string word = word_;
       GetToken (true); 
       if (type_ == LHPAREN)
         {
         // might be single-argument function (eg. abs (x) )
-        map<string, OneArgFunction>::const_iterator si;
+        std::map<std::string, OneArgFunction>::const_iterator si;
         si = OneArgumentFunctions.find (word);
         if (si != OneArgumentFunctions.end ())
           {
@@ -440,7 +455,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
           }
         
         // might be double-argument function (eg. roll (6, 2) )
-        map<string, TwoArgFunction>::const_iterator di;
+        std::map<std::string, TwoArgFunction>::const_iterator di;
         di = TwoArgumentFunctions.find (word);
         if (di != TwoArgumentFunctions.end ())
           {
@@ -453,7 +468,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
           }
   
        // might be double-argument function (eg. roll (6, 2) )
-        map<string, ThreeArgFunction>::const_iterator ti;
+        std::map<std::string, ThreeArgFunction>::const_iterator ti;
         ti = ThreeArgumentFunctions.find (word);
         if (ti != ThreeArgumentFunctions.end ())
           {
@@ -467,7 +482,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
           return ti->second (v1, v2, v3); // evaluate function
           }
         
-        throw runtime_error ("Function '" + word + "' not implemented.");
+        throw std::runtime_error ("Function '" + word + "' not implemented.");
         }
       
       // not a function? must be a symbol in the symbol table
@@ -484,7 +499,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
             {
             double d = Expression (true); 
             if (d == 0.0)
-              throw runtime_error ("Divide by zero");
+              throw std::runtime_error ("Divide by zero");
             v /= d;
             break;   // change table entry with expression
             } // end of ASSIGN_DIV
@@ -508,7 +523,7 @@ const double Parser::Primary (const bool get)   // primary (base) tokens
       }
     
     default:   
-      throw runtime_error ("Unexpected token: " + word_);
+      throw std::runtime_error ("Unexpected token: " + word_);
     
     } // end of switch on type
   
@@ -527,7 +542,7 @@ const double Parser::Term (const bool get)    // multiply and divide
           {
           double d = Primary (true);
           if (d == 0.0)
-            throw runtime_error ("Divide by zero");
+            throw std::runtime_error ("Divide by zero");
           left /= d; 
           break;
           }
@@ -609,12 +624,12 @@ const double Parser::Evaluate ()  // get result
   {
   double v = CommaList (true);
   if (type_ != END)
-    throw runtime_error ("Unexpected text at end of expression: " + string (pWordStart_));
+    throw std::runtime_error ("Unexpected text at end of expression: " + std::string (pWordStart_));
   return v;  
   }
 
 // change program and evaluate it
-const double Parser::Evaluate (const string program)  // get result
+const double Parser::Evaluate (const std::string & program)  // get result
   {
   // do same stuff constructor did
   program_  = program;
