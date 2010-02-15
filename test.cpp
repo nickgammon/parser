@@ -74,6 +74,7 @@ int main ()
 
       // example of retrieving a symbol
       double abc = p ["abc"]; 
+      std::cout << "abc = " << abc << std::endl;
       
       } // end of input loop
     
