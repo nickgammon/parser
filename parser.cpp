@@ -28,7 +28,11 @@ Modified 13 January 2010 by Nick Gammon.
   4. Fixed problem where changing a parameter and calling p.Evaluate again would fail because the 
      initial token type was not reset to NONE.
  
- 
+Modified 16 February 2010 by Nick Gammon
+
+  1. Fixed bug where if you called Evaluate () twice, the original expression would not be reprocessed.
+  
+  
 Thanks to various posters on my forum for suggestions. The relevant post is currently at:
 
   http://www.gammon.com.au/forum/?id=4649
