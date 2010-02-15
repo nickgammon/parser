@@ -6,13 +6,14 @@ CCFLAGS=-g3 -Wall -pedantic -Wno-long-long -fmessage-length=0 -O3
 
 O_FILES = parser.o test.o 
 
-parser : $(O_FILES)
+test: $(O_FILES)
 	@ echo "Linking ...";
 	@ $(CC) $(CCFLAGS) -o parser $(O_FILES)
 
-.SUFFIXES : .o .cpp
-  
-parser.cpp : parser.h
+o/%.o: %.cpp
+	echo "  Compiling $@....";
+	$(CC) -c $(CCFLAGS) $< -o $@
 
-test.cpp : parser.h
+.cpp.o: parser.h
+	$(CC) -c $(CCFLAGS) $<
 
