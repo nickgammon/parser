@@ -639,6 +639,8 @@ const double Parser::CommaList (const bool get)  // expr1, expr2
 
 const double Parser::Evaluate ()  // get result
   {
+  pWord_    = program_.c_str ();
+  type_     = NONE;
   double v = CommaList (true);
   if (type_ != END)
     throw std::runtime_error ("Unexpected text at end of expression: " + std::string (pWordStart_));
