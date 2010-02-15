@@ -72,7 +72,7 @@ class Parser
  
   // ctor
   Parser (const std::string & program) 
-    : program_ (program), pWord_ (program_.c_str ()), type_ (NONE)
+    : program_ (program)
       {  
       // insert pre-defined names:
       symbols_ ["pi"] = 3.1415926535897932385;

@@ -654,10 +654,7 @@ const double Parser::Evaluate ()  // get result
 // change program and evaluate it
 const double Parser::Evaluate (const std::string & program)  // get result
   {
-  // do same stuff constructor did
   program_  = program;
-  pWord_    = program_.c_str ();
-  type_     = NONE;
   return Evaluate ();
   }
 
