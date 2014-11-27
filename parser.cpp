@@ -32,6 +32,9 @@ Modified 16 February 2010 by Nick Gammon
 
   1. Fixed bug where if you called Evaluate () twice, the original expression would not be reprocessed.
   
+Modified 27 November 2014 by Nick Gammon
+
+  1. Fixed bug where a literal number followed by EOF would throw an error.
   
 Thanks to various posters on my forum for suggestions. The relevant post is currently at:
 
@@ -352,7 +355,7 @@ const Parser::TokenType Parser::GetToken (const bool ignoreSign)
     // parse std::string into double value
     is >> value_;
       
-    if (is.fail () || !is.eof ())
+    if (is.fail () && !is.eof ())
       throw std::runtime_error ("Bad numeric literal: " + word_);
     return type_ = NUMBER;
     }   // end of number found
